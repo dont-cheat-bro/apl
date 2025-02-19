@@ -1,3 +1,127 @@
+ns2 star topo:
+
+et ns [new Simulator]
+set tracefile [open out.tr w]
+set namfile [open out.nam w]
+$ns trace-all $tracefile
+$ns namtrace-all $namfile
+
+# Create nodes
+set center [$ns node]
+set nodes {}
+for {set i 0} {$i < 5} {incr i} {
+    lappend nodes [$ns node]
+}
+
+# Create duplex links (star topology)
+foreach node $nodes {
+    $ns duplex-link $center $node 1Mb 10ms DropTail
+}
+
+# Setup TCP connections
+set tcpAgents {}
+set sinks {}
+for {set i 0} {$i < 5} {incr i} {
+    set tcp [new Agent/TCP]
+    set sink [new Agent/TCPSink]
+    $ns attach-agent $center $tcp
+    $ns attach-agent [lindex $nodes $i] $sink
+    $ns connect $tcp $sink
+    lappend tcpAgents $tcp
+    lappend sinks $sink
+}
+
+# Generate FTP traffic
+foreach tcp $tcpAgents {
+    set ftp [new Application/FTP]
+    $ftp attach-agent $tcp
+    $ftp set type_ FTP
+    $ns at 0.5 "$ftp start"
+}
+
+proc finish {} {
+    global ns tracefile namfile
+    $ns flush-trace
+    close $tracefile
+    close $namfile
+    exec nam out.nam &
+    exit 0
+}
+
+$ns at 5.0 "finish"
+$ns run
+
+
+
+UDP:
+# Create a new simulator instance
+set ns [new Simulator]
+
+# Create trace and NAM output files
+set tracefile [open out.tr w]
+set namfile [open out.nam w]
+$ns trace-all $tracefile
+$ns namtrace-all $namfile
+
+# Create nodes
+set center [$ns node]
+set nodes {}
+for {set i 0} {$i < 5} {incr i} {
+    lappend nodes [$ns node]
+}
+
+# Create duplex links (star topology)
+foreach node $nodes {
+    $ns duplex-link $center $node 1Mb 10ms DropTail
+}
+
+# Setup UDP connections
+set udpAgents {}
+set nullSinks {}
+for {set i 0} {$i < 5} {incr i} {
+    set udp [new Agent/UDP]
+    set null [new Agent/Null]
+    
+    $ns attach-agent $center $udp
+    $ns attach-agent [lindex $nodes $i] $null
+    $ns connect $udp $null
+    
+    lappend udpAgents $udp
+    lappend nullSinks $null
+}
+
+# Generate CBR traffic
+foreach udp $udpAgents {
+    set cbr [new Application/Traffic/CBR]
+    $cbr attach-agent $udp
+    $cbr set rate_ 512Kb
+    $cbr set packetSize_ 512
+    $cbr set random_ false
+    $ns at 0.5 "$cbr start"
+}
+
+# Define finish procedure
+proc finish {} {
+    global ns tracefile namfile
+    $ns flush-trace
+    close $tracefile
+    close $namfile
+    exec nam out.nam &
+    exit 0
+}
+
+# Schedule simulation end
+$ns at 5.0 "finish"
+
+# Run the simulation
+$ns run
+
+
+
+
+
+
+
 IP SPOFFING:
 
 from scapy.all import IP, TCP, send
