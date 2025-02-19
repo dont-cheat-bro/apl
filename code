@@ -75,3 +75,57 @@ response = client_socket.recv(1024).decode()
 print(f"Server response: {response}")
 
 client_socket.close()
+
+
+
+
+modified server and client, to make it look like chat app:
+Server:
+
+import socket
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(("0.0.0.0", 12345))
+server.listen(5)
+
+print("Server is running... Waiting for connections.")
+
+while True:
+    client, addr = server.accept()
+    print(f"Connected to {addr}")
+
+    client.send(b"Welcome to the chat server! Type 'exit' to disconnect.\n")
+
+    while True:
+        message = client.recv(1024).decode().strip()
+        if not message or message.lower() == "exit":
+            print(f"Client {addr} disconnected.")
+            client.send(b"Goodbye!\n")
+            client.close()
+            break
+        print(f"Client: {message}")
+        reply = input("You: ")  # Server replies manually
+        client.send(reply.encode())
+
+
+Simple Client Code
+
+import socket
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(("127.0.0.1", 12345))  # Connect to server
+
+print(client.recv(1024).decode())  # Welcome message
+
+while True:
+    msg = input("You: ")
+    client.send(msg.encode())
+    if msg.lower() == "exit":
+        break
+    response = client.recv(1024).decode()
+    print(f"Server: {response}")
+
+client.close()
+
+
+
