@@ -216,21 +216,15 @@ int main() {
     struct sockaddr_in target;
     char buffer[1024]; // UDP payload
 
-    // Target settings
-    const char *target_ip = "192.168.1.1"; // Change to your target IP
-    int target_port = 80; // Target port
 
     // Create UDP socket
     sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return 1;
-    }
+
 
     // Set target details
     target.sin_family = AF_INET;
-    target.sin_port = htons(target_port);
-    target.sin_addr.s_addr = inet_addr(target_ip);
+    target.sin_port = htons(80);
+    target.sin_addr.s_addr = inet_addr(192.168.1.1);
 
     // Fill buffer with random data
     memset(buffer, 'A', sizeof(buffer));
@@ -346,6 +340,88 @@ while True:
     print(f"Server: {response}")
 
 client.close()
+
+
+
+
+
+Server and client using c:
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    int server_sock, client_sock;
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t addr_size = sizeof(client_addr);
+    char buffer[1024];
+
+    server_sock = socket(AF_INET, SOCK_STREAM, 0);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(8080);
+
+    bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    listen(server_sock, 5);
+    client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &addr_size);
+    printf("Client connected\n");
+
+    while (1) {
+        recv(client_sock, buffer, sizeof(buffer), 0);
+        printf("Client: %s", buffer);
+        printf("Server: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        send(client_sock, buffer, strlen(buffer), 0);
+    }
+    close(client_sock);
+}
+
+
+
+
+
+
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    int sock;
+    struct sockaddr_in server_addr;
+    char buffer[1024];
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    printf("Connected to server\n");
+
+    while (1) {
+        printf("Client: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        send(sock, buffer, strlen(buffer), 0);
+        recv(sock, buffer, sizeof(buffer), 0);
+        printf("Server: %s", buffer);
+    }
+    close(sock);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
