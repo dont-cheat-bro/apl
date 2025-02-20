@@ -349,3 +349,30 @@ client.close()
 
 
 
+ip spoofing in C:
+
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+int main() {
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    if (sock < 0) return 1;
+    setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &(int){1}, sizeof(int));
+
+    char packet[sizeof(struct iphdr)] = {0};
+    struct iphdr *ip = (struct iphdr *)packet;
+
+    *ip = (struct iphdr){.ihl = 5, .version = 4, .tot_len = htons(sizeof(packet)), 
+                         .ttl = 64, .protocol = IPPROTO_ICMP, 
+                         .saddr = inet_addr("192.168.1.100"), 
+                         .daddr = inet_addr("192.168.1.1")};
+
+    struct sockaddr_in dest = {.sin_family = AF_INET, .sin_addr.s_addr = ip->daddr};
+
+    sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&dest, sizeof(dest));
+    close(sock);
+}
