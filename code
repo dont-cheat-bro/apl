@@ -53,6 +53,8 @@ $ns run
 
 
 
+
+
 UDP:
 # Create a new simulator instance
 set ns [new Simulator]
@@ -374,3 +376,132 @@ int main() {
     sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&dest, sizeof(dest));
     close(sock);
 }
+
+
+
+
+
+
+
+
+
+
+
+Star topo::
+# Create Simulator
+set ns [new Simulator]
+set nf [open out.nam w]
+$ns namtrace-all $nf
+
+# Define Nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+
+# Define Links
+$ns duplex-link $n0 $n1 1Mb 10ms DropTail
+$ns duplex-link $n0 $n2 1Mb 10ms DropTail
+$ns duplex-link $n0 $n3 1Mb 10ms DropTail
+$ns duplex-link $n0 $n4 1Mb 10ms DropTail
+
+# TCP Connection
+set tcp [new Agent/TCP]
+$ns attach-agent $n1 $tcp
+set sink [new Agent/TCPSink]
+$ns attach-agent $n4 $sink
+$ns connect $tcp $sink
+
+# Generate Traffic
+set ftp [new Application/FTP]
+$ftp attach-agent $tcp
+
+# Schedule Events
+$ns at 0.1 "$tcp set fid_ 1"
+$ns at 0.2 "$ftp start"
+$ns at 5.0 "finish"
+
+# Define Finish Procedure
+proc finish {} {
+    global ns nf
+    $ns flush-trace
+    close $nf
+    exec nam out.nam &
+    exit 0
+}
+
+# Run Simulation
+$ns run
+
+
+
+
+
+
+SERVER
+
+
+import socket
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind(("0.0.0.0", 8080))
+server_socket.listen(1)
+
+print("Server listening on port 8080...")
+
+conn, addr = server_socket.accept()
+print(f"Connection from {addr}")
+
+while True:
+    # Receive message from client
+    data = conn.recv(1024).decode()
+    if data.lower() == "exit":
+        print("Client disconnected.")
+        break
+    print(f"Client: {data}")
+
+    # Send response to client
+    response = input("You: ")
+    conn.send(response.encode())
+
+    if response.lower() == "exit":
+        print("Server shutting down.")
+        break
+
+conn.close()
+server_socket.close()
+
+
+
+
+CLIENT
+
+import socket
+
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect(("127.0.0.1", 8080))
+
+print("Connected to server. Type 'exit' to disconnect.")
+
+while True:
+    # Send message to server
+    msg = input("You: ")
+    client_socket.send(msg.encode())
+
+    if msg.lower() == "exit":
+        print("Disconnected from server.")
+        break
+
+    # Receive response from server
+    response = client_socket.recv(1024).decode()
+    if response.lower() == "exit":
+        print("Server has disconnected.")
+        break
+    print(f"Server: {response}")
+
+client_socket.close()
+
+
+
+
